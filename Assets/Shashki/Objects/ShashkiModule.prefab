@@ -11,6 +11,21 @@ Prefab:
   m_ParentPrefab: {fileID: 0}
   m_RootGameObject: {fileID: 1792054556419306}
   m_IsPrefabParent: 1
+--- !u!1 &1055480706931958
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 4707752855027328}
+  m_Layer: 0
+  m_Name: LEDContainer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
 --- !u!1 &1127598737379440
 GameObject:
   m_ObjectHideFlags: 0
@@ -53,6 +68,7 @@ GameObject:
   - component: {fileID: 4313123778439806}
   - component: {fileID: 33107641827832498}
   - component: {fileID: 23093239035377950}
+  - component: {fileID: 114406788944481712}
   m_Layer: 0
   m_Name: ModelComponent
   m_TagString: Untagged
@@ -152,6 +168,7 @@ Transform:
   - {fileID: 4876611561797524}
   - {fileID: 4210625702610836}
   - {fileID: 4874195830263710}
+  - {fileID: 4707752855027328}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -167,6 +184,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 4155804464714898}
   m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &4707752855027328
+Transform:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1055480706931958}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.063, y: 0.015, z: 0.0774}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 4268349350812800}
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4874195830263710
 Transform:
@@ -291,6 +321,19 @@ MonoBehaviour:
   m_Script: {fileID: 2144496390, guid: 45b809be76fd7a3468b6f517bced6f28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &114406788944481712
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1232470687183274}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1005838349, guid: 45b809be76fd7a3468b6f517bced6f28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShaderNames:
+  - KT/Mobile/DiffuseTint
 --- !u!114 &114668893354358676
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -313,14 +356,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea4f94f65df89834f8b7a8c86f636e4d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  MovingSounds:
+  - Move_1
+  - Move_2
+  JumpingSounds:
+  - Jump_1
+  - Jump_2
   BoardContainer: {fileID: 1127598737379440}
+  LEDSContainer: {fileID: 1055480706931958}
   WhiteCellMaterial: {fileID: 2100000, guid: 2955c06680dfa2a45a3905aaded14302, type: 2}
   BlackCellMaterial: {fileID: 2100000, guid: 4611054cd191d204883b0cb9bc6f65e8, type: 2}
   Selectable: {fileID: 114986415371778146}
   Module: {fileID: 114066623108679710}
+  Audio: {fileID: 114668893354358676}
   CellPrefab: {fileID: 114914307908316958, guid: cbc7796e30028e6438abb87bc1958d22,
     type: 2}
   PiecePrefab: {fileID: 114414863442513088, guid: ed2a4b6e823b2194992530129995c427,
+    type: 2}
+  LEDPrefab: {fileID: 114896707336401864, guid: f91599a78b9e19c4f808bad883025147,
     type: 2}
 --- !u!114 &114986415371778146
 MonoBehaviour:

@@ -1,23 +1,22 @@
 ﻿using UnityEngine;
 
 public class PieceComponent : MonoBehaviour {
-	private ShashkiPuzzle.Cell _status = ShashkiPuzzle.Cell.EMPTY;
-	public ShashkiPuzzle.Cell status {
-		get { return _status; }
-		set {
-			if (value == ShashkiPuzzle.Cell.EMPTY) throw new UnityException("Invalid piece status");
-			_status = value;
-			UpdateMaterial();
-		}
-	}
+	private bool _king;
+	public bool king { get { return _king; } set { _king = value; UpdateMaterial(); } }
 
-	public Material WhiteManMaterial;
-	public Material BlackManMaterial;
+	private int _player;
+	public int player { get { return _player; } set { _player = value; UpdateMaterial(); } }
+
+	public GameObject KingLogo;
+	public Material[] PlayersMaterials;
 	public Renderer Renderer;
 
+	private void Start() {
+		if (!king) KingLogo.SetActive(false);
+	}
+
 	private void UpdateMaterial() {
-		if (status == ShashkiPuzzle.Cell.PLAYER_MAN) Renderer.material = WhiteManMaterial;
-		else if (status == ShashkiPuzzle.Cell.AI_MAN) Renderer.material = BlackManMaterial;
-		else throw new UnityException("Unknown piece material");
+		Renderer.material = PlayersMaterials[player];
+		KingLogo.SetActive(king);
 	}
 }
