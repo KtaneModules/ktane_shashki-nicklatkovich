@@ -17,6 +17,8 @@ public class ShashkiModule : MonoBehaviour {
 	public readonly Vector2Int CHECKERBOARD_SIZE = new Vector2Int(8, 8);
 	public readonly Vector2 CHECKERBOARD_CELLS_OFFSET = new Vector2(.018f, .018f);
 
+	private static int moduleIdCounter = 1;
+
 	public string[] MovingSounds;
 	public string[] JumpingSounds;
 	public GameObject BoardContainer;
@@ -30,6 +32,8 @@ public class ShashkiModule : MonoBehaviour {
 	public PieceComponent PiecePrefab;
 	public LEDComponent LEDPrefab;
 
+	private int moduleId;
+	private int totalPassedGamesCount = 0;
 	private int passedGamesCount = 0;
 	private int winStreak = 0;
 	private int draws = 0;
@@ -47,6 +51,7 @@ public class ShashkiModule : MonoBehaviour {
 	}
 
 	private void Start() {
+		moduleId = moduleIdCounter++;
 		cells = new CellComponent[CHECKERBOARD_SIZE.x][];
 		for (int x = 0; x < CHECKERBOARD_SIZE.x; x++) {
 			cells[x] = new CellComponent[CHECKERBOARD_SIZE.y];
@@ -69,6 +74,16 @@ public class ShashkiModule : MonoBehaviour {
 		Module.OnActivate += Activate;
 	}
 
+	private void DebugGame(string stringAfterLastMove = null) {
+		string[] notation = puzzle.notation.ToArray();
+		for (int i = 0; i < notation.Length; i += 2) {
+			Debug.LogFormat("[Shashki #{0}] Move #{1}: {2}", moduleId, i / 2 + 1, notation[i] + (i < notation.Length - 1 ? " " + notation[i + 1] : ""));
+		}
+		if (stringAfterLastMove != null) Debug.LogFormat("[Shashki #{0}] {1}", moduleId, stringAfterLastMove);
+		string winner = puzzle.winner == 0 ? "DRAW" : (puzzle.winner == 1 ? "Player" : "Module");
+		Debug.LogFormat("[Shashki #{0}] Game #{1} ended. Winner: {2}", moduleId, totalPassedGamesCount + 1, winner);
+	}
+
 	private IEnumerator RestartTimer(int count = 1) {
 		GameEnded(puzzle.winner, count);
 		yield return new WaitForSeconds(RESTART_TIMER);
@@ -77,12 +92,14 @@ public class ShashkiModule : MonoBehaviour {
 
 	private void Restart() {
 		if (passedGamesCount >= GAMES_TO_RESET_COUNT) {
+			Debug.LogFormat("[Shashki #{0}] {1} games played. Reset module", moduleId, GAMES_TO_RESET_COUNT);
 			passedGamesCount = 0;
 			foreach (LEDComponent led in leds) Destroy(led.gameObject);
 			leds = new List<LEDComponent>();
 			winStreak = 0;
 			draws = 0;
 		}
+		Debug.LogFormat("[Shashki #{0}] Game #{1} started", moduleId, totalPassedGamesCount + 1);
 		if (pieces != null) {
 			foreach (PieceComponent piece in pieces.SelectMany(row => row).Where(p => p != null)) Destroy(piece.gameObject);
 		}
@@ -164,6 +181,9 @@ public class ShashkiModule : MonoBehaviour {
 			bool success = puzzle.TryMove(selectedCell.Value, pos);
 			if (!success) {
 				if (puzzle.GetPossibleMoves(false).Any(m => m.from == selectedCell && m.to == pos)) {
+					ShashkiPuzzle.Move possibleMove = puzzle.GetPossibleMoves().First();
+					string tryingMove = ShashkiPuzzle.PosToCoord(selectedCell.Value) + "-" + ShashkiPuzzle.PosToCoord(pos);
+					DebugGame(string.Format("Trying to make move {0} while jump {1} possible", tryingMove, possibleMove.ToString()));
 					cells[selectedCell.Value.x][selectedCell.Value.y].selected = false;
 					selectedCell = null;
 					winStreak = 0;
@@ -182,25 +202,39 @@ public class ShashkiModule : MonoBehaviour {
 				while (puzzle.state != ShashkiPuzzle.State.ENDED && puzzle.player != 1) MakeAITurn();
 			}
 			if (puzzle.winner == 1) {
-				int winsCount = puzzle.PlayerHasPieces(2) ? 2 : 1;
+				DebugGame();
+				int winsCount = 1;
+				if (puzzle.PlayerHasPieces(2)) {
+					Debug.LogFormat("[Shashki #{0}] Module has pieces. Two wins being credited instead of one!", moduleId);
+					winsCount = 2;
+				}
 				winStreak += winsCount;
-				if (winStreak >= WIN_STREAK_REQUIRED) Solve();
-				else {
+				if (winStreak >= WIN_STREAK_REQUIRED) {
+					Debug.LogFormat("[Shashki #{0}] {1} wins in a row. Module solved!", moduleId, winStreak);
+					Solve();
+				} else {
 					Audio.PlaySoundAtTransform(WIN_SOUND, transform);
 					StartCoroutine(RestartTimer(winsCount));
 				}
 			} else if (puzzle.winner == 0) {
 				winStreak = 0;
 				draws += 1;
-				if (draws >= MAX_DRAWS_COUNT) Solve();
-				else {
+				DebugGame();
+				if (draws >= MAX_DRAWS_COUNT) {
+					Debug.LogFormat("[Shashki #{0}] {1} draws. Module solved!", moduleId, draws);
+					Solve();
+				} else {
 					Audio.PlaySoundAtTransform(WIN_SOUND, transform);
 					StartCoroutine(RestartTimer());
 				}
 			} else if (puzzle.winner > 1) {
 				Module.HandleStrike();
 				winStreak = 0;
-				if (puzzle.PlayerHasPieces(1)) Module.HandleStrike();
+				DebugGame();
+				if (puzzle.PlayerHasPieces(1)) {
+					Debug.LogFormat("[Shashki #{0}] Player has pieces. Two defeats being credited instead of one!", moduleId);
+					Module.HandleStrike();
+				}
 				StartCoroutine(RestartTimer());
 			}
 			return;
@@ -214,6 +248,7 @@ public class ShashkiModule : MonoBehaviour {
 	}
 
 	private void GameEnded(int winner, int count = 1) {
+		totalPassedGamesCount += 1;
 		for (int i = 0; i < count; i++) {
 			CreateLED(winner, passedGamesCount);
 			passedGamesCount += 1;

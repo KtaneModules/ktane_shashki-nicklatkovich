@@ -33,6 +33,7 @@ public class ShashkiPuzzle {
 	public State state { get { return _state; } private set { _state = value; } }
 
 	public Queue<Move> moves = new Queue<Move>();
+	public List<string> notation = new List<string>();
 
 	private int movesToDraw = MOVES_TO_DRAW;
 	private Vector2Int _streakPos;
@@ -67,15 +68,22 @@ public class ShashkiPuzzle {
 			this.to = to;
 			this.enemiesOnTheWay = enemiesOnTheWay;
 		}
+		public override string ToString() {
+			return PosToCoord(from) + (enemiesOnTheWay ? ":" : "-") + PosToCoord(to);
+		}
+	}
+
+	public static string PosToCoord(Vector2Int pos) {
+		return (char)(pos.x + 'a') + pos.y.ToString();
 	}
 
 	public bool TryMove(Vector2Int from, Vector2Int to) {
 		int prevPlayer = player;
 		Move move = GetPossibleMoves().FirstOrDefault(m => m.from == from && m.to == to);
 		if (move == null) return false;
-		Debug.Log(player);
-		Debug.Log(move.from);
-		Debug.Log(move.to);
+		// Debug.Log(player);
+		// Debug.Log(move.from);
+		// Debug.Log(move.to);
 		_board[to.x][to.y] = _board[from.x][from.y];
 		_board[from.x][from.y] = new Cell();
 		Vector2Int dir = new Vector2Int(Sign(to.x - from.x), Sign(to.y - from.y));
@@ -87,6 +95,11 @@ public class ShashkiPuzzle {
 		bool canLeadToDraw = _board[to.x][to.y].king && _state == State.TURN;
 		if (to.y == 0 && player == 2) _board[to.x][to.y].king = true;
 		if (to.y == BoardSize.y - 1 && player == 1) _board[to.x][to.y].king = true;
+		if (_state == State.STREAK) {
+			string prevNotation = notation.Last();
+			notation.RemoveAt(notation.Count - 1);
+			notation.Add(prevNotation + ":" + PosToCoord(to));
+		} else notation.Add(PosToCoord(from) + (move.enemiesOnTheWay ? ":" : "-") + PosToCoord(to));
 		_state = State.TURN;
 		if (move.enemiesOnTheWay && GetPossibleMoves().Any(m => m.enemiesOnTheWay && m.from == to)) {
 			_state = State.STREAK;
