@@ -48,7 +48,7 @@ public class ShashkiPuzzle {
 			for (int y = 0; y < BoardSize.y; y++) {
 				Cell cell = new Cell();
 				_board[x][y] = cell;
-				if (x % 2 == y % 2) cell.passable = false;
+				if (x % 2 != y % 2) cell.passable = false;
 				else if (y < homeSize) cell.player = 1;
 				else if (y >= BoardSize.y - homeSize) cell.player = 2;
 			}

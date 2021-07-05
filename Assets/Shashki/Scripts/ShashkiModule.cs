@@ -59,7 +59,7 @@ public class ShashkiModule : MonoBehaviour {
 				Vector2Int pos = new Vector2Int(x, y);
 				CellComponent cell = Instantiate(CellPrefab);
 				cells[x][y] = cell;
-				bool black = x % 2 == y % 2;
+				bool black = x % 2 != y % 2;
 				cell.Renderer.material = black ? BlackCellMaterial : WhiteCellMaterial;
 				cell.transform.parent = BoardContainer.transform;
 				cell.transform.localPosition = cellToPos(pos);
