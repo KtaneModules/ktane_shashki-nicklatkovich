@@ -37,6 +37,7 @@ public class ShashkiPuzzle {
 
 	private int movesToDraw = MOVES_TO_DRAW;
 	private Vector2Int _streakPos;
+	private int _streakDirection;
 	private Cell[][] _board;
 
 	public ShashkiPuzzle(Vector2Int boardSize, int homeSize) {
@@ -63,6 +64,13 @@ public class ShashkiPuzzle {
 		public readonly Vector2Int from;
 		public readonly Vector2Int to;
 		public readonly bool enemiesOnTheWay;
+		public int direction {
+			get {
+				if (Mathf.Abs(from.x - to.x) != Mathf.Abs(from.y - to.y) || from.x == to.x) throw new UnityException("Invalid move");
+				if (to.x > from.x) return to.y > from.y ? 1 : 0;
+				return to.y > from.y ? 2 : 3;
+			}
+		}
 		public Move(Vector2Int from, Vector2Int to, bool enemiesOnTheWay) {
 			this.from = from;
 			this.to = to;
@@ -101,9 +109,10 @@ public class ShashkiPuzzle {
 			notation.Add(prevNotation + ":" + PosToCoord(to));
 		} else notation.Add(PosToCoord(from) + (move.enemiesOnTheWay ? ":" : "-") + PosToCoord(to));
 		_state = State.TURN;
-		if (move.enemiesOnTheWay && GetPossibleMoves().Any(m => m.enemiesOnTheWay && m.from == to)) {
+		if (move.enemiesOnTheWay && GetPossibleMoves().Any(m => m.enemiesOnTheWay && m.from == to && m.direction != (move.direction + 2) % 4)) {
 			_state = State.STREAK;
 			_streakPos = to;
+			_streakDirection = move.direction;
 		} else {
 			_player += 1;
 			if (player > PLAYERS_COUNT) _player = 1;
@@ -160,7 +169,7 @@ public class ShashkiPuzzle {
 			}
 		}
 		if (state == State.STREAK) {
-			result = result.Where(m => m.from == _streakPos && m.enemiesOnTheWay).ToList();
+			result = result.Where(m => m.from == _streakPos && m.enemiesOnTheWay && m.direction != (_streakDirection + 2) % 4).ToList();
 			if (result.Count == 0) throw new UnityException("Unable to get possible streaks");
 			return result;
 		}
