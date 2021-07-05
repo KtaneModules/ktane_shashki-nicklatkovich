@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 public class ShashkiModule : MonoBehaviour {
@@ -11,6 +12,7 @@ public class ShashkiModule : MonoBehaviour {
 	public const float LEDS_INTERVAL = .009f;
 	public const float RESTART_TIMER = 1f;
 	public const float MOVE_ANIMATION_TIME = .3f;
+	public const float NOTATION_TEXT_Y_OFFSET = .0081f;
 	public const float PIECE_Y_OFFSET = .005f + .002f / 2;
 	public const float PIECE_JUMP_HEIGHT = .002f;
 	public const string WIN_SOUND = "Game_win";
@@ -19,10 +21,13 @@ public class ShashkiModule : MonoBehaviour {
 
 	private static int moduleIdCounter = 1;
 
+	public readonly string TwitchHelpMessage = "\"!{0} a3-b4\" - move piece | \"!{0} a3:c5\" - make a jump | \"!{0} a3:c5:e3\" - make a multiple-jumps";
+
 	public string[] MovingSounds;
 	public string[] JumpingSounds;
 	public GameObject BoardContainer;
 	public GameObject LEDSContainer;
+	public GameObject StatusLight;
 	public Material WhiteCellMaterial;
 	public Material BlackCellMaterial;
 	public KMSelectable Selectable;
@@ -31,12 +36,16 @@ public class ShashkiModule : MonoBehaviour {
 	public CellComponent CellPrefab;
 	public PieceComponent PiecePrefab;
 	public LEDComponent LEDPrefab;
+	public CoordNotation CoordNotationPrefab;
+
+	public bool TwitchPlaysActive;
 
 	private int moduleId;
 	private int totalPassedGamesCount = 0;
 	private int passedGamesCount = 0;
 	private int winStreak = 0;
 	private int draws = 0;
+	private bool solved = false;
 	private bool activated;
 	private Vector2Int? selectedCell;
 	private CellComponent[][] cells;
@@ -72,6 +81,16 @@ public class ShashkiModule : MonoBehaviour {
 		Selectable.Children = cells.SelectMany(row => row.Select(cell => cell.Selectable)).ToArray();
 		Selectable.UpdateChildren();
 		Module.OnActivate += Activate;
+		FixStatusLight();
+	}
+
+	private void FixStatusLight() {
+		int childCount = StatusLight.transform.childCount;
+		for (int i = 0; i < childCount; i++) {
+			GameObject child = StatusLight.transform.GetChild(i).gameObject;
+			if (child.name.Contains("Twitch")) continue;
+			child.SetActive(false);
+		}
 	}
 
 	private void DebugGame(string stringAfterLastMove = null) {
@@ -153,10 +172,38 @@ public class ShashkiModule : MonoBehaviour {
 
 	private void Activate() {
 		activated = true;
+		if (TwitchPlaysActive) {
+			for (int x = 1; x < 8; x++) {
+				CoordNotation coord = Instantiate(CoordNotationPrefab);
+				coord.transform.parent = BoardContainer.transform;
+				coord.transform.localPosition = cellToPos(new Vector2Int(x, 7)) + Vector3.up * NOTATION_TEXT_Y_OFFSET;
+				coord.transform.localScale = Vector3.one;
+				coord.transform.localRotation = Quaternion.identity;
+				coord.text = ((char)(x + 'A')).ToString();
+				coord.color = x % 2 == 1 ? new Color32(0x55, 0x55, 0x55, 0xff) : new Color32(0x28, 0x2d, 0x36, 0xff);
+			}
+			for (int y = 0; y < 7; y++) {
+				CoordNotation coord = Instantiate(CoordNotationPrefab);
+				coord.transform.parent = BoardContainer.transform;
+				coord.transform.localPosition = cellToPos(new Vector2Int(0, y)) + Vector3.up * NOTATION_TEXT_Y_OFFSET;
+				coord.transform.localScale = Vector3.one;
+				coord.transform.localRotation = Quaternion.identity;
+				coord.text = (y + 1).ToString();
+				coord.color = y % 2 == 0 ? new Color32(0x55, 0x55, 0x55, 0xff) : new Color32(0x28, 0x2d, 0x36, 0xff);
+			}
+			CoordNotation a1coord = Instantiate(CoordNotationPrefab);
+			a1coord.transform.parent = BoardContainer.transform;
+			a1coord.transform.localPosition = cellToPos(new Vector2Int(0, 7)) + Vector3.up * NOTATION_TEXT_Y_OFFSET;
+			a1coord.transform.localScale = Vector3.one;
+			a1coord.transform.localRotation = Quaternion.identity;
+			a1coord.text = "A8";
+			a1coord.color = new Color32(0x28, 0x2d, 0x36, 0xff);
+		}
 		Restart();
 	}
 
 	private void Solve() {
+		solved = true;
 		GameEnded(puzzle.winner);
 		StartCoroutine(SolveAnimation());
 	}
@@ -264,6 +311,52 @@ public class ShashkiModule : MonoBehaviour {
 		led.transform.localRotation = Quaternion.identity;
 		led.winner = winner;
 		leds.Add(led);
+	}
+
+	public IEnumerator ProcessTwitchCommand(string command) {
+		command = command.Trim().ToLower();
+		ShashkiPuzzle puzzle = this.puzzle.Copy();
+		if (command == "moves") {
+			yield return null;
+			yield return "sendtochat {0}, !{1} possible moves: " + puzzle.GetPossibleMoves(false).Select(m => m.ToString()).Join("; ");
+			yield break;
+		}
+		if (Regex.IsMatch(command, "^[a-h][1-8]-[a-h][1-8]$")) {
+			Vector2Int from = puzzle.CoordToPos(command.Split('-').First());
+			Vector2Int to = puzzle.CoordToPos(command.Split('-').Last());
+			yield return null;
+			if (puzzle.GetPossibleMoves(false).All(m => m.from != from || m.to != to || m.enemiesOnTheWay)) {
+				yield return "sendtochat {0}, !{1} unable to move " + command;
+				yield break;
+			}
+			if (selectedCell != from) {
+				CellPressed(from);
+				yield return new WaitForSeconds(.1f);
+			}
+			CellPressed(to);
+			if (solved) yield return "solve";
+			yield break;
+		}
+		if (Regex.IsMatch(command, "^[a-h][1-8](:[a-h][1-8])+$")) {
+			Vector2Int[] split = command.Split(':').Select(c => puzzle.CoordToPos(c)).ToArray();
+			yield return null;
+			for (int i = 1; i < split.Length; i++) {
+				if (!puzzle.TryMove(split[i - 1], split[i]) || !puzzle.moves.Last().enemiesOnTheWay) {
+					yield return "sendtochat {0}, !{1} unable to jump " + command;
+					yield break;
+				}
+			}
+			if (selectedCell != split[0]) {
+				CellPressed(split[0]);
+				yield return new WaitForSeconds(.1f);
+			}
+			for (int i = 1; i < split.Length; i++) {
+				if (i > 1) yield return new WaitForSeconds(.1f);
+				CellPressed(split[i]);
+			}
+			if (solved) yield return "solve";
+			yield break;
+		}
 	}
 
 	private void MakeAITurn() {

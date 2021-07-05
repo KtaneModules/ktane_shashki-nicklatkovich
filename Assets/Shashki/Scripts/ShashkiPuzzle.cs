@@ -12,6 +12,12 @@ public class ShashkiPuzzle {
 		public bool passable = true;
 		public bool king = false;
 		public int player = 0;
+		public Cell() {}
+		public Cell(Cell other) {
+			passable = other.passable;
+			king = other.king;
+			player = other.player;
+		}
 	}
 
 	public readonly int[] YDirections = new[] { 0, 1, -1 };
@@ -28,7 +34,7 @@ public class ShashkiPuzzle {
 	public int winner { get { return _winner; } private set { _winner = value; } }
 
 	private int _player = 1;
-	public int player { get { return _player; } }
+	public int player { get { return _player; } private set { _player = value; } }
 	private State _state = State.TURN;
 	public State state { get { return _state; } private set { _state = value; } }
 
@@ -39,6 +45,22 @@ public class ShashkiPuzzle {
 	private Vector2Int _streakPos;
 	private int _streakDirection;
 	private Cell[][] _board;
+
+	public ShashkiPuzzle Copy() {
+		ShashkiPuzzle result = new ShashkiPuzzle(BoardSize, 0);
+		result.winner = winner;
+		result.player = player;
+		result.state = state;
+		result.moves = new Queue<Move>(moves);
+		result.notation = new List<string>(notation);
+		result.movesToDraw = movesToDraw;
+		result._streakPos = _streakPos;
+		result._streakDirection = _streakDirection;
+		for (int x = 0; x < BoardSize.x; x++) {
+			for (int y = 0; y < BoardSize.y; y++) result._board[x][y] = new Cell(_board[x][y]);
+		}
+		return result;
+	}
 
 	public ShashkiPuzzle(Vector2Int boardSize, int homeSize) {
 		if (homeSize >= boardSize.y / 2) throw new UnityException("Invalid home size");
@@ -83,6 +105,15 @@ public class ShashkiPuzzle {
 
 	public static string PosToCoord(Vector2Int pos) {
 		return (char)(pos.x + 'a') + pos.y.ToString();
+	}
+
+	public Vector2Int CoordToPos(string coord) {
+		if (coord.Length != 2) throw new UnityException("Invalid coord length");
+		int x = coord[0] - 'a';
+		int y = coord[1] - '1';
+		Vector2Int result = new Vector2Int(x, y);
+		if (!OnTheBoard(result)) throw new UnityException("Invalid coord position");
+		return result;
 	}
 
 	public bool TryMove(Vector2Int from, Vector2Int to) {
