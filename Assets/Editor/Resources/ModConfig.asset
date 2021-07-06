@@ -18,6 +18,6 @@ MonoBehaviour:
 
 
     Made for KTaNE Modding Jam #1.'
-  version: 1.0.0
+  version: 1.0.1
   outputFolder: build
   previewImage: {fileID: 2800000, guid: b74fe4d91dcd21b489aea28ea058fb65, type: 3}
