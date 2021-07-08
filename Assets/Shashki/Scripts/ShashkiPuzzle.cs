@@ -149,18 +149,14 @@ public class ShashkiPuzzle {
 			if (player > PLAYERS_COUNT) _player = 1;
 		}
 		moves.Enqueue(move);
-		if (canLeadToDraw && !move.enemiesOnTheWay) {
-			movesToDraw -= 1;
-			if (movesToDraw <= 0) {
-				winner = 0;
-				_state = State.ENDED;
-			}
-		} else {
-			movesToDraw = MOVES_TO_DRAW;
-			if (_board.All(row => row.All(cell => cell.player != player)) || GetPossibleMoves().Count == 0) {
-				winner = prevPlayer;
-				_state = State.ENDED;
-			}
+		if (canLeadToDraw && !move.enemiesOnTheWay) movesToDraw -= 1;
+		else movesToDraw = MOVES_TO_DRAW;
+		if (movesToDraw <= 0) {
+			winner = 0;
+			_state = State.ENDED;
+		} else if (_board.All(row => row.All(cell => cell.player != player)) || GetPossibleMoves().Count == 0) {
+			winner = prevPlayer;
+			_state = State.ENDED;
 		}
 		return true;
 	}
